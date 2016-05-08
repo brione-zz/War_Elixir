@@ -19,7 +19,7 @@ defmodule(Card) do
     import Inspect.Algebra
 
     def inspect(card, opts) do
-      concat ["%Card{", to_doc(Map.to_list(card), opts), "}"]
+      card |> to_string |> to_doc(opts)
     end
   end
 

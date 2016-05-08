@@ -4,10 +4,15 @@ defmodule(Game) do
     deck = Cards.shuffle(Cards.make_deck(:full))
     hand_size = length(deck)/2
     { h1, deck } = Cards.deal(deck, trunc(hand_size))
-    player1 = spawn(__MODULE__, :player, [ h1 ])
-    player2 = spawn(__MODULE__, :player, [ deck ])
-    play_a_round([player1, player2], [], { 0, 0, 0 })
+    player1 = spawn_link(__MODULE__, :player, [ h1 ])
+    player2 = spawn_link(__MODULE__, :player, [ deck ])
+    {rounds, ties, multiple} = play_a_game([player1, player2])
+    IO.puts("Rounds: #{rounds}, Ties: #{ties}, Consecutive: #{multiple}")
     :ok
+  end
+
+  def play_a_game(players) do
+    play_a_round(players, [], {0, 0, 0})
   end
 
   def play_a_round(players, pot, {rounds, ties, multiple} ) do
@@ -15,8 +20,8 @@ defmodule(Game) do
     player_cards = receive_cards_from_players([])
     case evaluate_round_list(player_cards) do
       { :tie, new_pot } -> 
-        consecutive = case length(pot) do
-          0 -> 0
+        consecutive = case pot do
+          [] -> 0
           _ -> 1
         end
         new_stats = { rounds+1, ties+1, multiple + consecutive }
@@ -26,7 +31,7 @@ defmodule(Game) do
         play_a_round(players, [], { rounds+1, ties, multiple} )
       { :game_over, pid, new_pot } ->
         for p <- players, do: send p, { :result, pid, pot ++ new_pot }
-        IO.puts("Rounds: #{rounds}, Ties: #{ties}, Consecutive: #{multiple}")
+        { rounds, ties, multiple }
     end
   end
 
